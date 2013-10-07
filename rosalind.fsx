@@ -398,3 +398,12 @@ let pmch str =
 
 test "pmch" pmch ">Rosalind_23
 AGCUAGUCAU" "12"
+
+//------------------------------------------------------------------------------------
+// http://rosalind.info/problems/pper/
+
+let pper str =
+  let nk = toIntegers str
+  sprintf "%d" (partialPermutationsCountModulo nk.[0] nk.[1] 1000000)
+
+test "pper" pper "21 7" "51200"

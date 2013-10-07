@@ -21,6 +21,12 @@ let rec binomialCoefficient n k =
   elif k = 1 then (float n)
   else (float n) * (binomialCoefficient (n-1) (k-1)) / (float k)
 
+/// Computes the number of possible permutations of k objects out of n possible ones, modulo h
+let rec partialPermutationsCountModulo n k h = 
+  if k = 0 then 1
+  elif k = 1 then n
+  else n * (partialPermutationsCountModulo (n-1) (k-1) h) % h
+
 /// Computes the the probability of getting k outcomes out of n attempts for an event with probability p
 let binomialProbability p n k = 
   (binomialCoefficient n k) * (p ** (float k)) * ((1.0-p) ** (float (n-k)))
