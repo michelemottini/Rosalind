@@ -407,3 +407,61 @@ let pper str =
   sprintf "%d" (partialPermutationsCountModulo nk.[0] nk.[1] 1000000)
 
 test "pper" pper "21 7" "51200"
+
+//------------------------------------------------------------------------------------
+// http://rosalind.info/problems/tree/
+
+/// Given an undirected graph described by the specified adjacency list returns all the nodes connected to the specified node
+let nodesFrom adj node =
+  seq {
+    for (a,b) in adj do
+      if a = node then 
+        yield b
+      elif b = node then
+        yield a
+  }
+
+/// Given an undirected graph described by the specified adjacency list computes the set of all nodes connected to the specified node
+/// optionally excluding the specified parentNode 
+let rec connectedNodes adj parentNodeOpt node =
+  nodesFrom adj node 
+    |> Seq.map (fun curNode -> 
+      match parentNodeOpt with 
+        | Some(parentNode) ->
+          if parentNode = curNode then
+            Set.empty
+          else
+            connectedNodes adj (Some node) curNode
+        | None -> connectedNodes adj (Some node) curNode) 
+    |> Set.unionMany
+    |> Set.add node
+
+/// Given an undirected graph of n nodes described by the specified adjacency list computes the number of connected sub-graphs
+let countConnected n adj = 
+  [1..n] |> Seq.fold (fun (traversed,count) node ->
+    if traversed |> Set.contains node then
+      (traversed, count)
+    else 
+      let connectedToNode = connectedNodes adj None node
+      (Set.union traversed connectedToNode, count+1)
+  ) (Set.empty,0) |> snd
+
+let tree str =
+  use reader = new System.IO.StringReader(str)
+  let n = System.Convert.ToInt32(reader.ReadLine())
+  let adj = readLines reader |> Seq.map (fun line -> 
+    let nodes = toIntegers line
+    (nodes.[0], nodes.[1])
+  )
+  // The minimum number of edges necessary to completely connect the graph is the number of already connected sub-graphs minus 1 
+  // i.e. the number of edges necessary to connect those already connected sub-graphs together
+  ((countConnected n adj) - 1 ).ToString()
+
+test "tree" tree "10
+1 2
+2 8
+4 10
+5 9
+6 10
+7 9" "3"
+

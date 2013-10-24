@@ -17,3 +17,12 @@ let test name f str expected =
     printfn "%s: OK" name
   else
     printfn "%s: failed - expected '%s', obtained '%s'" name expected obtained
+
+/// Reads all the lines of the specified text reader, returning them as a sequence
+let rec readLines (reader: System.IO.TextReader) =
+  let line = reader.ReadLine()
+  if line = null then
+    Seq.empty
+  else
+    Seq.append (Seq.singleton line) (readLines reader)
+
