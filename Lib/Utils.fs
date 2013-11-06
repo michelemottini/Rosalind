@@ -10,6 +10,15 @@ let toIntegers (str: string) =
 let integersToString ints =
   ints |> Seq.map (sprintf "%d") |> String.concat " "
 
+/// Converts a string containing space-separated floats into an array of floats
+let toFloats (str: string) =
+  str.Split(' ') |> Array.map System.Convert.ToDouble
+
+/// Converts a sequence of floats into a space-separated string
+let floatsToString digits floats =
+  let format = sprintf "F%d" digits
+  floats |> Seq.map (fun (f: float) -> f.ToString(format)) |> String.concat " "
+
 /// Test that a function from string to string produces the expeced output gived a certain input
 let test name f str expected = 
   let obtained = f str

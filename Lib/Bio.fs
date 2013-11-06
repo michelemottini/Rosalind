@@ -178,11 +178,24 @@ let proteinMotifLocations (motif: string) (protein: string) =
 /// Fetch a protein string given its id from the Uniprot online database
 let fetchProtein (proteinId: string) = 
   let proteinFASTAUrl = "http://www.uniprot.org/uniprot/" + System.Web.HttpUtility.UrlEncode(proteinId) + ".fasta"
-  let request = System.Net.WebRequest.Create(proteinFASTAUrl)
-  use response = request.GetResponse()
-  use responseStream = response.GetResponseStream()
-  let (id,protein) = parseFastaReader (new System.IO.StreamReader(responseStream)) |> Seq.cache |> Seq.head
-  protein
+  try
+    let request = System.Net.WebRequest.Create(proteinFASTAUrl) :?> System.Net.HttpWebRequest
+    request.UserAgent <- "Mozilla/5.0 (Windows NT 6.1; WOW64)" // For some reason the UNIPROT service requires a user agent to work...
+    use response = request.GetResponse()
+    use responseStream = response.GetResponseStream()
+    let (id,protein) = parseFastaReader (new System.IO.StreamReader(responseStream)) |> Seq.cache |> Seq.head
+    protein
+  with
+    // Better error messages in case of Web errors
+    | :? System.Net.WebException as webException ->
+      match webException.Response with
+        | :? System.Net.HttpWebResponse as errorResponse ->
+          use errorResponseStream = errorResponse.GetResponseStream()
+          let errorContent = (new System.IO.StreamReader(errorResponseStream)).ReadToEnd()
+          raise (System.ApplicationException(sprintf "Unable to access '%s': %s\r\n%s" proteinFASTAUrl errorResponse.StatusDescription errorContent))
+        | _ ->
+          raise (System.ApplicationException(sprintf "Unable to access '%s'" proteinFASTAUrl))
+
 
 /// Fetch protein strings given their ids from the Uniprot online database
 let fetchProteins (ids: string) =
@@ -327,4 +340,11 @@ let perfectMatchingCount (rna: string) =
   let gcCount = 
     rna.Length/2 - auCount
   (factorial auCount) * (factorial gcCount)
+
+/// Computes the probability of the specified dna string given the expected GC-content
+let probFromGC (dna: string) gc = 
+  let probGC = gc / 2.0
+  let probAT = (1.0 - gc) / 2.0
+  let probs = [| probAT; probGC; probGC; probAT |]
+  dna |> Seq.fold (fun r c -> r*probs.[nucleotideIndex(c)]) 1.0
 

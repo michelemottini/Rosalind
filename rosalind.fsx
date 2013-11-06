@@ -465,3 +465,16 @@ test "tree" tree "10
 6 10
 7 9" "3"
 
+//------------------------------------------------------------------------------------
+// http://rosalind.info/problems/prob/
+
+let prob str =
+  use reader = new System.IO.StringReader(str)
+  let dna = reader.ReadLine()
+  let a = reader.ReadLine() |> toFloats
+  let b = a |> Array.map (probFromGC dna >> log10)
+  b |> floatsToString 3
+
+test "prob" prob "ACGATACAA
+0.129 0.287 0.423 0.476 0.641 0.742 0.783" "-5.737 -5.217 -5.263 -5.360 -5.958 -6.628 -7.009"
+
