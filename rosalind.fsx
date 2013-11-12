@@ -411,7 +411,7 @@ test "pper" pper "21 7" "51200"
 //------------------------------------------------------------------------------------
 // http://rosalind.info/problems/tree/
 
-/// Given an undirected graph described by the specified adjacency list returns all the nodes connected to the specified node
+/// Given an undirected graph described by the specified adjacency list returns all the nodes directly connected to the specified node
 let nodesFrom adj node =
   seq {
     for (a,b) in adj do
@@ -421,8 +421,8 @@ let nodesFrom adj node =
         yield a
   }
 
-/// Given an undirected graph described by the specified adjacency list computes the set of all nodes connected to the specified node
-/// optionally excluding the specified parentNode 
+/// Given an undirected graph described by the specified adjacency list computes the set of all nodes connected (directly or indirectly) 
+/// to the specified node, optionally excluding the specified parentNode 
 let rec connectedNodes adj parentNodeOpt node =
   nodesFrom adj node 
     |> Seq.map (fun curNode -> 
@@ -478,3 +478,55 @@ let prob str =
 test "prob" prob "ACGATACAA
 0.129 0.287 0.423 0.476 0.641 0.742 0.783" "-5.737 -5.217 -5.263 -5.360 -5.958 -6.628 -7.009"
 
+//------------------------------------------------------------------------------------
+// http://rosalind.info/problems/long/
+
+/// Checks if two string overlap for at least half their length - i.e. if the end of the first string
+/// is equal to the start of the second string
+/// Returns None if there is no overlap, or Some and the string resulting by combining the two strings on the overlap
+let overlapHalfIndex (str1: string) (str2: string) = 
+  let len1 = str1.Length
+  let len2 = str2.Length
+  let minOverlapLen = ((min len1 len2)+1)/2
+  [1..len1-minOverlapLen] |> Seq.tryFind (fun idx -> 
+    let len = min (len1-idx) len2
+    System.String.Compare(str1, idx, str2, 0, len) = 0
+  ) |> Option.map (fun idx ->
+    str1.Substring(0,idx) + str2
+  )
+
+let rec shortestContainingPrimitive resultSoFar (remainingStrings:Set<string>) =
+  if Set.isEmpty remainingStrings then 
+    resultSoFar
+  else
+    let asFirstOpt = 
+      remainingStrings |> Seq.tryPick (fun s -> overlapHalfIndex resultSoFar s |> Option.map (fun newStr -> (newStr, s)))
+    let newResultSoFar, overlappingString = 
+      match asFirstOpt with
+        | Some(newStr, s) -> (newStr, s)
+        | None ->
+          let asLastOpt = 
+            remainingStrings |> Seq.tryPick (fun s -> overlapHalfIndex s resultSoFar |> Option.map (fun newStr -> (newStr, s)))
+          match asLastOpt with
+            | Some(newStr, s) -> (newStr, s)
+            | None -> failwith (sprintf "Unable to match string '%s'"  resultSoFar)
+    shortestContainingPrimitive newResultSoFar (Set.remove overlappingString remainingStrings)
+                
+let shortestContaining strs =
+  let str = Seq.head strs
+  let strsSet = Set(strs |> Seq.skip 1)
+  shortestContainingPrimitive str strsSet
+
+let long str = 
+  parseFastaString str
+    |> Seq.map snd
+    |> shortestContaining
+
+test "long" long ">Rosalind_56
+ATTAGACCTG
+>Rosalind_57
+CCTGCCGGAA
+>Rosalind_58
+AGACCTGCCG
+>Rosalind_59
+GCCGGAATAC" "ATTAGACCTGCCGGAATAC"
